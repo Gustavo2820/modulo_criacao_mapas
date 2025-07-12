@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import colorchooser, filedialog, messagebox
 from PIL import Image
+from map_converter_utils import converter_mapa
 
 # Configurações iniciais
 default_rows = 20
@@ -13,6 +14,7 @@ COLORS = {
     'Espaço vazio': ((255, 255, 255), '#FFFFFF'),
     'Tapete/Caminho': ((255, 165, 0), '#FFA500'),
     'Inocupável': ((128, 128, 128), '#808080'),
+    'Porta/Saída': ((255, 0, 0), '#FF0000'),
 }
 
 class PixelMapEditor(tk.Tk):
@@ -30,6 +32,13 @@ class PixelMapEditor(tk.Tk):
         self._draw_map()
 
     def _build_ui(self):
+        # Legenda das cores (nome e cor visual)
+        legenda_frame = tk.Frame(self)
+        legenda_frame.pack(pady=(10, 0))
+        tk.Label(legenda_frame, text='Legenda: ', font=('Arial', 10, 'bold')).pack(side=tk.LEFT)
+        for nome, (rgb, hex_color) in COLORS.items():
+            tk.Label(legenda_frame, text=nome, fg=hex_color, font=('Arial', 10, 'bold')).pack(side=tk.LEFT, padx=5)
+
         # Frame para seleção de cor
         color_frame = tk.Frame(self)
         color_frame.pack(pady=5)
@@ -50,6 +59,10 @@ class PixelMapEditor(tk.Tk):
         # Botão de salvar
         save_btn = tk.Button(self, text='Salvar como PNG', command=self._save_as_png)
         save_btn.pack(pady=5)
+
+        # Botão de converter imagem existente
+        import_btn = tk.Button(self, text='Converter imagem existente', command=self._importar_e_converter)
+        import_btn.pack(pady=5)
 
     def _select_color(self, name):
         self.selected_color_name = name
@@ -88,9 +101,23 @@ class PixelMapEditor(tk.Tk):
                 img.putpixel((x, y), self.map[y][x])
         try:
             img.save(file_path)
-            messagebox.showinfo('Sucesso', f'Mapa salvo em {file_path}')
+            # Conversão automática após salvar
+            base_path = file_path.rsplit('.', 1)[0]
+            converter_mapa(file_path, base_path)
+            messagebox.showinfo('Sucesso', f'Mapa salvo em {file_path}\nArquivos .map gerados no mesmo local.')
         except Exception as e:
-            messagebox.showerror('Erro', f'Não foi possível salvar: {e}')
+            messagebox.showerror('Erro', f'Não foi possível salvar ou converter: {e}')
+
+    def _importar_e_converter(self):
+        img_path = filedialog.askopenfilename(title='Selecione a imagem para converter', filetypes=[('Imagens', '*.png;*.jpg;*.jpeg')])
+        if not img_path:
+            return
+        try:
+            base_path = img_path.rsplit('.', 1)[0]
+            converter_mapa(img_path, base_path)
+            messagebox.showinfo('Sucesso', f'Arquivos .map gerados no mesmo local de {img_path}')
+        except Exception as e:
+            messagebox.showerror('Erro', f'Erro ao converter imagem: {e}')
 
 if __name__ == '__main__':
     # Janela para configuração inicial
